@@ -35,6 +35,7 @@ import {
   Download,
   RefreshCw
 } from "lucide-react"
+import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -140,6 +141,7 @@ export function ProctorDashboard() {
   const [filterStatus, setFilterStatus] = useState<"all" | "flagged" | "active">("all")
   const [isLive, setIsLive] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [activeMenu, setActiveMenu] = useState("Live Dashboard")
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -179,13 +181,12 @@ export function ProctorDashboard() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 mt-4">
-          <NavItem icon={LayoutGrid} label="Live Dashboard" active />
-          <NavItem icon={Users} label="All Students" />
-          <NavItem icon={FileText} label="Exam Library" />
-          <NavItem icon={BarChart3} label="Analytics" />
-          <NavItem icon={BrainCircuit} label="AI Settings" />
-          <NavItem icon={Bell} label="Alert Center" badge={flaggedCount} />
-          <NavItem icon={Settings} label="Settings" />
+          <NavItem icon={LayoutGrid} label="Live Dashboard" active={activeMenu === "Live Dashboard"} onClick={() => setActiveMenu("Live Dashboard")} />
+          <NavItem icon={Users} label="All Students" active={activeMenu === "All Students"} onClick={() => setActiveMenu("All Students")} />
+          <NavItem icon={FileText} label="Exam Library" active={activeMenu === "Exam Library"} onClick={() => setActiveMenu("Exam Library")} />
+          <NavItem icon={BarChart3} label="Analytics" active={activeMenu === "Analytics"} onClick={() => setActiveMenu("Analytics")} />
+          <NavItem icon={BrainCircuit} label="AI Settings" active={activeMenu === "AI Settings"} onClick={() => setActiveMenu("AI Settings")} />
+          <NavItem icon={Settings} label="Settings" active={activeMenu === "Settings"} onClick={() => setActiveMenu("Settings")} />
         </nav>
 
         {/* Quick Stats */}
@@ -259,21 +260,65 @@ export function ProctorDashboard() {
               {isLive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               {isLive ? "Pause Event" : "Resume"}
             </Button>
-            <Button variant="outline" className="gap-2 hidden md:flex rounded-xl h-10 shadow-sm border-border">
+            <Button 
+              variant="outline" 
+              className="gap-2 hidden md:flex rounded-xl h-10 shadow-sm border-border"
+              onClick={() => {
+                toast.success("PDF Export Started", { description: "The telemetry report is being generated and will download shortly." })
+              }}
+            >
               <Download className="h-4 w-4" />
               Export PDF
             </Button>
-            <Button variant="ghost" size="icon" className="relative h-10 w-10 bg-secondary/50 rounded-xl hover:bg-secondary">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-danger-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background shadow-lg">
-                {flaggedCount}
-              </span>
-            </Button>
+
+            <DropdownMenu>
+              {/* @ts-ignore */}
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-10 w-10 bg-secondary/50 rounded-xl hover:bg-secondary">
+                  <Bell className="h-5 w-5" />
+                  {flaggedCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-danger-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background shadow-lg">
+                      {flaggedCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl shadow-xl overflow-hidden border-border mt-2">
+                <div className="bg-muted p-3 border-b flex items-center justify-between">
+                  <span className="font-bold text-sm">Recent Alerts</span>
+                  <Badge variant="destructive" className="h-5">{flaggedCount} new</Badge>
+                </div>
+                <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+                  {sampleEvents.slice(0, 3).map(e => (
+                    <div key={e.id} className="p-2 hover:bg-muted/50 rounded-lg text-sm transition-colors border border-transparent hover:border-border">
+                      <p className="font-semibold text-foreground truncate">{e.event}</p>
+                      <p className="text-xs text-muted-foreground">{e.student} • {e.time}</p>
+                    </div>
+                  ))}
+                  {sampleEvents.length === 0 && (
+                    <div className="p-4 text-center text-sm text-muted-foreground">Catch up! No recent alerts.</div>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
         {/* Dashboard Content */}
         <main className="flex-1 overflow-hidden flex flex-col pt-2 bg-muted/20">
+          {activeMenu !== "Live Dashboard" ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
+              <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center border-4 border-muted mb-6 shadow-xl relative overflow-hidden">
+                 <div className="absolute inset-0 bg-primary/5 opacity-50" />
+                 <Shield className="w-10 h-10 text-muted-foreground opacity-50" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">{activeMenu}</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">This module is currently view-only in the MVP. In the full production environment, this will connect to the backend APIs.</p>
+              <Button variant="outline" className="mt-8" onClick={() => setActiveMenu("Live Dashboard")}>
+                Return to Live Dashboard
+              </Button>
+            </div>
+          ) : (
           <Tabs defaultValue="monitoring" className="flex-1 flex flex-col">
             <div className="px-6 lg:px-10 mb-4 mt-2">
               <TabsList className="bg-card border border-border shadow-sm p-1 rounded-xl gap-1">
@@ -494,15 +539,17 @@ export function ProctorDashboard() {
             </TabsContent>
 
           </Tabs>
+          )}
         </main>
       </div>
     </div>
   )
 }
 
-function NavItem({ icon: Icon, label, active = false, badge }: any) {
+function NavItem({ icon: Icon, label, active = false, badge, onClick }: any) {
   return (
     <button
+      onClick={onClick}
       className={cn(
         "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group",
         active 

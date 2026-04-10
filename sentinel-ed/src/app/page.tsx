@@ -18,16 +18,19 @@ import {
   CheckCircle2,
   Shuffle,
   Clock,
-  FileText
+  FileText,
+  KeyRound
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StudentExamInterface } from "@/components/exam/student-exam-interface"
 import { ProctorDashboard } from "@/components/dashboard/proctor-dashboard"
 import { AnimatePresence, motion } from "framer-motion"
+import { toast } from "sonner"
 
-type View = "home" | "student" | "proctor"
+type View = "home" | "student" | "proctor" | "login"
 
 const features = [
   {
@@ -74,6 +77,92 @@ const features = [
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>("home")
+  const [targetView, setTargetView] = useState<"student" | "proctor" | null>(null)
+  const [password, setPassword] = useState("")
+  const [loginError, setLoginError] = useState(false)
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (targetView === "student" && password === "student") {
+      setCurrentView("student")
+      setPassword("")
+      setLoginError(false)
+      toast.success("Successfully authenticated as Student")
+    } else if (targetView === "proctor" && password === "admin") {
+      setCurrentView("proctor")
+      setPassword("")
+      setLoginError(false)
+      toast.success("Successfully authenticated as Admin Proctor")
+    } else {
+      setLoginError(true)
+      toast.error("Invalid credentials. Please try again.")
+    }
+  }
+
+  const navigateToLogin = (role: "student" | "proctor") => {
+    setTargetView(role)
+    setCurrentView("login")
+    setPassword("")
+    setLoginError(false)
+  }
+
+  if (currentView === "login") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-border shadow-2xl overflow-hidden glassmorphism-heavy">
+            <div className={`p-6 text-white relative overflow-hidden bg-gradient-to-r ${targetView === "proctor" ? "from-primary to-primary/80" : "from-success to-success/80"}`}>
+              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+              <div className="relative z-10 flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md">
+                  {targetView === "proctor" ? <Shield className="h-6 w-6" /> : <GraduationCap className="h-6 w-6" />}
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">{targetView === "proctor" ? "Proctor Portal" : "Student Examination Login"}</h1>
+                  <p className="text-sm opacity-90">Secure Authentication Required</p>
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-6">
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    Enter your {targetView === "proctor" ? "Administrator" : "Student"} Password
+                  </p>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                      type="password" 
+                      placeholder="Password"
+                      className={`pl-10 h-12 text-base rounded-xl ${loginError ? "border-danger focus-visible:ring-danger" : ""}`}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {targetView === "proctor" ? "Hint: use password 'admin'" : "Hint: use password 'student'"}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" className="w-full h-12 rounded-xl" onClick={() => setCurrentView("home")}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className={`w-full h-12 rounded-xl text-white ${targetView === "proctor" ? "bg-primary hover:bg-primary/90" : "bg-success hover:bg-success/90"}`}>
+                    Authenticate
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
 
   if (currentView === "student") {
     return (
@@ -134,9 +223,10 @@ export default function Home() {
             <Badge variant="secondary" className="hidden sm:flex">v1.0 MVP</Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="hidden sm:flex">Documentation</Button>
-            <Button variant="ghost" size="sm" className="hidden sm:flex">Support</Button>
-            <Button size="sm" className="gap-2" onClick={() => setCurrentView("proctor")}>
+            <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => {
+              toast.info("SentinelEd Documentation", { description: "API and implementation docs are coming soon in v1.1" })
+            }}>Documentation</Button>
+            <Button size="sm" className="gap-2" onClick={() => navigateToLogin("proctor")}>
               <Lock className="h-4 w-4" />
               Admin Login
             </Button>
@@ -186,8 +276,8 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto gap-2 h-12 px-8 text-base bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg shadow-primary/20"
-                onClick={() => setCurrentView("student")}
+                className="w-full sm:w-auto gap-2 h-12 px-8 text-base bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 shadow-lg shadow-success/20 text-white"
+                onClick={() => navigateToLogin("student")}
               >
                 <GraduationCap className="h-5 w-5" />
                 Try Student Demo
@@ -197,7 +287,7 @@ export default function Home() {
                 size="lg" 
                 variant="outline" 
                 className="w-full sm:w-auto gap-2 h-12 px-8 text-base"
-                onClick={() => setCurrentView("proctor")}
+                onClick={() => navigateToLogin("proctor")}
               >
                 <Users className="h-5 w-5" />
                 View Proctor Dashboard
@@ -272,7 +362,7 @@ export default function Home() {
             >
               <Card 
                 className="group cursor-pointer transition-all hover:shadow-2xl hover:border-success/50 overflow-hidden"
-                onClick={() => setCurrentView("student")}
+                onClick={() => navigateToLogin("student")}
               >
                 {/* Preview Image */}
                 <div className="aspect-video bg-gradient-to-br from-success/5 to-success/10 relative overflow-hidden">
@@ -343,7 +433,7 @@ export default function Home() {
             >
               <Card 
                 className="group cursor-pointer transition-all hover:shadow-2xl hover:border-primary/50 overflow-hidden"
-                onClick={() => setCurrentView("proctor")}
+                onClick={() => navigateToLogin("proctor")}
               >
                 {/* Preview Image */}
                 <div className="aspect-video bg-gradient-to-br from-primary/5 to-primary/10 relative overflow-hidden">

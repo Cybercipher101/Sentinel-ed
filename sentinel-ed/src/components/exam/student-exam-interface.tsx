@@ -33,6 +33,7 @@ interface Question {
   text: string
   options: string[]
   category: string
+  correctAnswer: string
 }
 
 // Mock API endpoint for questions
@@ -49,7 +50,8 @@ const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
         "A database normalization technique",
         "A method for distributing workload across servers"
       ],
-      category: "Software Architecture"
+      category: "Software Architecture",
+      correctAnswer: "A design principle that separates a computer program into distinct sections"
     },
     {
       id: 2,
@@ -60,7 +62,8 @@ const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
         "All data must be stored in a single database table",
         "The client must maintain a persistent connection"
       ],
-      category: "Web Development"
+      category: "Web Development",
+      correctAnswer: "The server does not store any session information between requests"
     },
     {
       id: 3,
@@ -71,7 +74,8 @@ const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
         "To encrypt all communications between services",
         "To cache frequently accessed data"
       ],
-      category: "System Design"
+      category: "System Design",
+      correctAnswer: "To distribute network traffic across multiple servers"
     },
     {
       id: 4,
@@ -82,7 +86,8 @@ const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
         "Array",
         "Hash Table"
       ],
-      category: "Data Structures"
+      category: "Data Structures",
+      correctAnswer: "Binary Heap"
     },
     {
       id: 5,
@@ -93,7 +98,8 @@ const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
         "O(n log n)",
         "O(1)"
       ],
-      category: "Algorithms"
+      category: "Algorithms",
+      correctAnswer: "O(log n)"
     }
   ]
   
@@ -129,6 +135,7 @@ export function StudentExamInterface() {
   const [aiAnalysisStatus, setAiAnalysisStatus] = useState<"idle" | "analyzing" | "complete">("idle")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [examSubmitted, setExamSubmitted] = useState(false)
+  const [finalScore, setFinalScore] = useState(0)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -286,7 +293,18 @@ export function StudentExamInterface() {
 
   const handleSubmitExam = async () => {
     setIsSubmitting(true)
+    
+    // Grade the exam
+    let correctCount = 0
+    questions.forEach((q, idx) => {
+      if (answers[idx] === q.correctAnswer) {
+        correctCount++
+      }
+    })
+    const score = (correctCount / questions.length) * 100
+    
     await new Promise(resolve => setTimeout(resolve, 2000))
+    setFinalScore(score)
     setExamSubmitted(true)
     setIsSubmitting(false)
     if (document.fullscreenElement) {
@@ -413,11 +431,13 @@ export function StudentExamInterface() {
              </div>
             <div className="grid grid-cols-2 gap-4 text-sm relative z-10">
               <div>
-                <p className="text-muted-foreground font-medium">Completion</p>
-                <p className="text-3xl font-bold text-success">{Math.round(progressPercent)}%</p>
+                <p className="text-muted-foreground font-medium">Final Score</p>
+                <p className={cn("text-3xl font-bold", finalScore >= 60 ? "text-success" : "text-danger")}>
+                  {Math.round(finalScore)}%
+                </p>
               </div>
               <div>
-                <p className="text-muted-foreground font-medium">Flags</p>
+                <p className="text-muted-foreground font-medium">Violations Logged</p>
                 <p className={cn("text-3xl font-bold", securityEvents.length > 0 ? "text-danger" : "text-success")}>
                   {securityEvents.length}
                 </p>
