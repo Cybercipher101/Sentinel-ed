@@ -116,6 +116,11 @@ const sampleStudents: Student[] = [
   { id: "STU-008", name: "David Kim", email: "david.k@university.edu", integrityScore: 68, status: "flagged", examProgress: 40, tabSwitches: 2, gazeDeviations: 6, lastActivity: "Audio anomaly" },
   { id: "STU-009", name: "Anna Martinez", email: "anna.m@university.edu", integrityScore: 91, status: "active", examProgress: 65, tabSwitches: 0, gazeDeviations: 2, lastActivity: "Answered Q13" },
   { id: "STU-010", name: "Robert Taylor", email: "robert.t@university.edu", integrityScore: 0, status: "disconnected", examProgress: 20, tabSwitches: 0, gazeDeviations: 0, lastActivity: "Connection lost" },
+  { id: "STU-011", name: "Sophia Lewis", email: "sophia.l@university.edu", integrityScore: 88, status: "active", examProgress: 80, tabSwitches: 1, gazeDeviations: 3, lastActivity: "Answered Q16" },
+  { id: "STU-012", name: "William Clark", email: "william.c@university.edu", integrityScore: 45, status: "flagged", examProgress: 35, tabSwitches: 4, gazeDeviations: 9, lastActivity: "Gaze deviation detected" },
+  { id: "STU-013", name: "Olivia Walker", email: "olivia.w@university.edu", integrityScore: 97, status: "active", examProgress: 90, tabSwitches: 0, gazeDeviations: 1, lastActivity: "Answered Q18" },
+  { id: "STU-014", name: "Daniel Hall", email: "daniel.h@university.edu", integrityScore: 100, status: "completed", examProgress: 100, tabSwitches: 0, gazeDeviations: 0, lastActivity: "Exam submitted" },
+  { id: "STU-015", name: "Mia Allen", email: "mia.a@university.edu", integrityScore: 72, status: "active", examProgress: 50, tabSwitches: 2, gazeDeviations: 5, lastActivity: "Answered Q10" },
 ]
 
 interface EventLog {
