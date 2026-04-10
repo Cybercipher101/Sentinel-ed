@@ -66,6 +66,33 @@ import {
   Cell
 } from "recharts"
 
+const DEFAULT_QUESTIONS = [
+  {
+    id: 1,
+    text: "Which of the following best describes the principle of separation of concerns in software architecture?",
+    options: [
+      "A design principle that separates a computer program into distinct sections",
+      "A security protocol for isolating network segments",
+      "A database normalization technique",
+      "A method for distributing workload across servers"
+    ],
+    category: "Software Architecture",
+    correctAnswer: "A design principle that separates a computer program into distinct sections"
+  },
+  {
+    id: 2,
+    text: "In the context of RESTful APIs, what does the term 'stateless' mean?",
+    options: [
+      "The server does not store any session information between requests",
+      "The API cannot handle concurrent requests",
+      "All data must be stored in a single database table",
+      "The client must maintain a persistent connection"
+    ],
+    category: "Web Development",
+    correctAnswer: "The server does not store any session information between requests"
+  }
+]
+
 interface Student {
   id: string
   name: string
@@ -142,11 +169,52 @@ export function ProctorDashboard() {
   const [isLive, setIsLive] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [activeMenu, setActiveMenu] = useState("Live Dashboard")
+  
+  // Dynamic Questions State
+  const [questions, setQuestions] = useState<any[]>([])
+  const [newQuestionText, setNewQuestionText] = useState("")
+  const [newOptions, setNewOptions] = useState(["", "", "", ""])
+  const [newCorrectAnswer, setNewCorrectAnswer] = useState("")
+  
+  // AI Settings State
+  const [gazeSensitivity, setGazeSensitivity] = useState("medium")
+  const [enforceFullscreen, setEnforceFullscreen] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    
+    // Load dynamic questions from localStorage
+    const saved = localStorage.getItem("sentinelQuestions")
+    if (saved) {
+      setQuestions(JSON.parse(saved))
+    } else {
+      setQuestions(DEFAULT_QUESTIONS)
+      localStorage.setItem("sentinelQuestions", JSON.stringify(DEFAULT_QUESTIONS))
+    }
+
     return () => clearInterval(timer)
   }, [])
+
+  const handleAddQuestion = () => {
+    if (!newQuestionText || newOptions.some(o => !o) || !newCorrectAnswer) {
+      toast.error("Please fill in all fields to add a question.")
+      return
+    }
+    const nq = {
+      id: Date.now(),
+      text: newQuestionText,
+      options: newOptions,
+      category: "Custom Addition",
+      correctAnswer: newCorrectAnswer
+    }
+    const updated = [...questions, nq]
+    setQuestions(updated)
+    localStorage.setItem("sentinelQuestions", JSON.stringify(updated))
+    setNewQuestionText("")
+    setNewOptions(["", "", "", ""])
+    setNewCorrectAnswer("")
+    toast.success("Question successfully added to live exam!")
+  }
 
   const filteredStudents = sampleStudents.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -306,19 +374,213 @@ export function ProctorDashboard() {
 
         {/* Dashboard Content */}
         <main className="flex-1 overflow-hidden flex flex-col pt-2 bg-muted/20">
-          {activeMenu !== "Live Dashboard" ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
-              <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center border-4 border-muted mb-6 shadow-xl relative overflow-hidden">
-                 <div className="absolute inset-0 bg-primary/5 opacity-50" />
-                 <Shield className="w-10 h-10 text-muted-foreground opacity-50" />
+          
+          {activeMenu === "Exam Library" && (
+            <div className="flex-1 overflow-y-auto p-6 lg:px-10">
+              <div className="grid lg:grid-cols-2 gap-8">
+                <Card className="rounded-2xl shadow-sm border-border">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Create New Question</CardTitle>
+                    <CardDescription>Add questions dynamically. Students will instantly see these in their exam.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold mb-1 block">Question Text</label>
+                      <Input placeholder="e.g. What is the complexity of binary search?" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} />
+                    </div>
+                    {newOptions.map((opt, idx) => (
+                      <div key={idx}>
+                        <label className="text-xs font-semibold mb-1 block text-muted-foreground">Option {idx + 1}</label>
+                        <Input placeholder={`Option ${idx + 1}`} value={opt} onChange={e => {
+                          const newer = [...newOptions]; newer[idx] = e.target.value; setNewOptions(newer)
+                        }} />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="text-sm font-semibold mb-1 block">Correct Answer</label>
+                      <Input placeholder="Must exactly match one of the options above" value={newCorrectAnswer} onChange={e => setNewCorrectAnswer(e.target.value)} />
+                    </div>
+                    <Button className="w-full mt-4" onClick={handleAddQuestion}>Save Question to Bank</Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl shadow-sm border-border h-fit">
+                  <CardHeader>
+                    <CardTitle>Current Question Bank</CardTitle>
+                    <CardDescription>{questions.length} questions actively deployed</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-4">
+                        {questions.map((q, idx) => (
+                          <div key={q.id} className="p-4 bg-muted/50 rounded-xl border border-border">
+                            <h4 className="font-bold text-sm mb-2">Q{idx + 1}: {q.text}</h4>
+                            <p className="text-xs text-muted-foreground mb-1 font-semibold text-success">Answer: {q.correctAnswer}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">{activeMenu}</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">This module is currently view-only in the MVP. In the full production environment, this will connect to the backend APIs.</p>
-              <Button variant="outline" className="mt-8" onClick={() => setActiveMenu("Live Dashboard")}>
-                Return to Live Dashboard
-              </Button>
             </div>
-          ) : (
+          )}
+
+          {activeMenu === "All Students" && (
+            <div className="flex-1 overflow-y-auto p-6 lg:px-10">
+              <Card className="rounded-2xl shadow-sm border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Central Registry</CardTitle>
+                  <CardDescription>Live database of all enrolled candidates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-xl border overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-secondary/50 text-xs uppercase font-semibold text-muted-foreground border-b">
+                        <tr>
+                          <th className="px-4 py-3">Student Name</th>
+                          <th className="px-4 py-3">ID</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Integrity Score</th>
+                          <th className="px-4 py-3">Progress</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border bg-card">
+                        {sampleStudents.map(s => (
+                          <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="px-4 py-3 font-semibold">{s.name}</td>
+                            <td className="px-4 py-3 font-mono text-muted-foreground">{s.id}</td>
+                            <td className="px-4 py-3">
+                              <Badge variant={s.status === "active" ? "default" : s.status === "flagged" ? "destructive" : "secondary"}>
+                                {s.status}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={cn("font-bold", s.integrityScore > 80 ? "text-success" : s.integrityScore > 50 ? "text-warning" : "text-danger")}>
+                                {s.integrityScore}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 w-32"><Progress value={s.examProgress} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeMenu === "AI Settings" && (
+            <div className="flex-1 overflow-y-auto p-6 lg:px-10">
+              <Card className="max-w-2xl mx-auto rounded-2xl shadow-sm border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5 text-primary" /> Machine Learning Configuration</CardTitle>
+                  <CardDescription>Adjust the sensitivity of SentinelEd's edge AI models.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between p-4 border rounded-xl bg-card">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Gaze Deviation Engine</h4>
+                      <p className="text-xs text-muted-foreground pr-8">Time threshold before triggering an alert when user looks away from screen.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant={gazeSensitivity === "low" ? "default" : "outline"} size="sm" onClick={() => setGazeSensitivity("low")}>Low</Button>
+                      <Button variant={gazeSensitivity === "medium" ? "default" : "outline"} size="sm" onClick={() => setGazeSensitivity("medium")}>Med</Button>
+                      <Button variant={gazeSensitivity === "high" ? "default" : "outline"} size="sm" onClick={() => setGazeSensitivity("high")}>Strict</Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-xl bg-card">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Enforce Fullscreen Mode</h4>
+                      <p className="text-xs text-muted-foreground pr-8">Requires students to give up browser UI access.</p>
+                    </div>
+                    <Button variant={enforceFullscreen ? "default" : "secondary"} size="sm" onClick={() => setEnforceFullscreen(!enforceFullscreen)}>
+                      {enforceFullscreen ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeMenu === "Settings" && (
+            <div className="flex-1 overflow-y-auto p-6 lg:px-10">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
+                <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center border-4 border-muted mb-6 shadow-xl relative overflow-hidden">
+                   <div className="absolute inset-0 bg-primary/5 opacity-50" />
+                   <Settings className="w-10 h-10 text-muted-foreground opacity-50" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Platform Settings</h2>
+                <p className="text-muted-foreground max-w-md mx-auto mb-8">Role Based Access Control (RBAC) and organizational configuration is disabled in this MVP view.</p>
+                <Button variant="outline" onClick={() => setActiveMenu("Live Dashboard")}>Return to Live Dashboard</Button>
+              </div>
+            </div>
+          )}
+
+          {activeMenu === "Analytics" && (
+            // Reusing the inner analytics view but expanding it globally if Analytics tab is chosen directly
+            <div className="flex-1 overflow-y-auto p-6 lg:px-10">
+              <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-xl mb-6 font-semibold flex items-center gap-2">
+                 <BarChart3 className="h-5 w-5" /> Analytics reporting engine launched in expanded view.
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="rounded-2xl shadow-sm border border-border">
+                  <CardHeader>
+                    <CardTitle className="text-base font-bold text-foreground">Integrity Drift Analysis</CardTitle>
+                    <CardDescription>Live measurement of cohort exam fidelity</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={integrityTrendData}>
+                        <defs>
+                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
+                        <Area type="monotone" dataKey="avgScore" stroke="var(--color-primary)" fill="url(#colorScore)" strokeWidth={3} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl shadow-sm border border-border">
+                  <CardHeader>
+                    <CardTitle className="text-base font-bold text-foreground">Incident Classifications</CardTitle>
+                    <CardDescription>Anomaly typing distribution</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie 
+                            data={violationTypeData} cx="50%" cy="50%" 
+                            innerRadius={70} outerRadius={90} paddingAngle={8} 
+                            dataKey="value" stroke="none"
+                          >
+                            {violationTypeData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", borderRadius: "12px", border: "none" }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute text-center flex flex-col items-center pointer-events-none">
+                        <Shield className="w-6 h-6 text-primary opacity-50 mb-1" />
+                        <span className="font-bold text-xl text-foreground">57</span>
+                        <span className="text-[10px] text-muted-foreground uppercase font-semibold">Total</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {activeMenu === "Live Dashboard" && (
           <Tabs defaultValue="monitoring" className="flex-1 flex flex-col">
             <div className="px-6 lg:px-10 mb-4 mt-2">
               <TabsList className="bg-card border border-border shadow-sm p-1 rounded-xl gap-1">

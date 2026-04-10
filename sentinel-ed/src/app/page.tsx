@@ -79,15 +79,19 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<View>("home")
   const [targetView, setTargetView] = useState<"student" | "proctor" | null>(null)
   const [password, setPassword] = useState("")
+  const [studentId, setStudentId] = useState("")
   const [loginError, setLoginError] = useState(false)
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (targetView === "student" && password === "student") {
+    if (targetView === "student" && password === "student" && studentId.length > 2) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sentinelStudentId", studentId)
+      }
       setCurrentView("student")
       setPassword("")
       setLoginError(false)
-      toast.success("Successfully authenticated as Student")
+      toast.success(`Successfully authenticated as ${studentId}`)
     } else if (targetView === "proctor" && password === "admin") {
       setCurrentView("proctor")
       setPassword("")
@@ -129,6 +133,26 @@ export default function Home() {
             </div>
             <CardContent className="p-6">
               <form onSubmit={handleLoginSubmit} className="space-y-6">
+                
+                {targetView === "student" && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      Student ID Number
+                    </p>
+                    <div className="relative">
+                      <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input 
+                        type="text" 
+                        placeholder="e.g. STU-1002"
+                        className="pl-10 h-12 text-base rounded-xl"
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value.toUpperCase())}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-foreground mb-1">
                     Enter your {targetView === "proctor" ? "Administrator" : "Student"} Password
@@ -141,7 +165,7 @@ export default function Home() {
                       className={`pl-10 h-12 text-base rounded-xl ${loginError ? "border-danger focus-visible:ring-danger" : ""}`}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      autoFocus
+                      autoFocus={targetView === "proctor"}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">

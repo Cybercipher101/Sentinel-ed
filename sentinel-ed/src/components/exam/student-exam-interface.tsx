@@ -40,6 +40,13 @@ interface Question {
 const fetchQuestionsFromAPI = async (): Promise<Question[]> => {
   await new Promise(resolve => setTimeout(resolve, 1500))
   
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("sentinelQuestions")
+    if (saved) {
+      return JSON.parse(saved)
+    }
+  }
+
   const questionBank: Question[] = [
     {
       id: 1,
